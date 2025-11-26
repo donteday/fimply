@@ -1,0 +1,28 @@
+{
+  "name": "finner-bot-tg",
+  "version": "1.0.0",
+  "description": "Financial assistant Telegram bot with AI",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "finance",
+    "ai",
+    "deepseek"
+  ],
+  "author": "Finner Bot Team",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "sqlite3": "^5.1.7",
+    "telegraf": "^4.15.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
