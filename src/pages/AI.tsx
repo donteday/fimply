@@ -127,48 +127,54 @@ export default function AI() {
       </div>
 
       {/* Input bar */}
-      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: '12px 16px', paddingBottom: 90 }}>
-        <textarea
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
-          placeholder="спросить что-нибудь…"
-          rows={1}
-          disabled={loading}
-          style={{
-            flex: 1,
-            backgroundColor: SB.card,
-            border: `1.5px solid ${SB.stroke}`,
-            borderRadius: 20,
-            padding: '12px 16px',
-            fontFamily: F.sans,
-            fontSize: 14,
-            color: SB.text,
-            resize: 'none',
-            maxHeight: 120,
-            overflowY: 'auto',
-            opacity: loading ? 0.6 : 1,
-          }}
-        />
-        <button
-          onClick={() => sendMessage(input)}
-          disabled={loading || !hasText}
-          style={{
-            width: 46,
-            height: 46,
-            borderRadius: 16,
-            backgroundColor: hasText && !loading ? SB.lime : SB.card,
-            border: `1.5px solid ${hasText && !loading ? SB.ink : SB.stroke}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: hasText && !loading ? 'pointer' : 'default',
-            flexShrink: 0,
-            transition: 'background-color 0.15s ease, border-color 0.15s ease',
-          }}
-        >
-          <span style={{ fontFamily: F.sansSemiBold, fontWeight: 600, fontSize: 18, color: hasText && !loading ? SB.ink : SB.muted }}>↑</span>
-        </button>
+      <div style={{ padding: '12px 16px', paddingBottom: 90 }}>
+        <div style={{ position: 'relative' }}>
+          <textarea
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
+            placeholder="спросить что-нибудь…"
+            rows={1}
+            disabled={loading}
+            style={{
+              width: '100%',
+              backgroundColor: SB.card,
+              border: `1.5px solid ${SB.stroke}`,
+              borderRadius: 24,
+              padding: '12px 52px 12px 16px',
+              fontFamily: F.sans,
+              fontSize: 14,
+              color: SB.text,
+              resize: 'none',
+              maxHeight: 120,
+              overflowY: 'auto',
+              opacity: loading ? 0.6 : 1,
+              display: 'block',
+            }}
+          />
+          <button
+            onClick={() => sendMessage(input)}
+            disabled={loading || !hasText}
+            style={{
+              position: 'absolute',
+              right: 6,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: 34,
+              height: 34,
+              borderRadius: '50%',
+              backgroundColor: hasText && !loading ? SB.lime : 'transparent',
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: hasText && !loading ? 'pointer' : 'default',
+              transition: 'background-color 0.15s ease',
+            }}
+          >
+            <span style={{ fontFamily: F.sansSemiBold, fontWeight: 600, fontSize: 16, color: hasText && !loading ? SB.ink : SB.dim }}>↑</span>
+          </button>
+        </div>
       </div>
 
       <style>{`
