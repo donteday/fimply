@@ -1,0 +1,10 @@
+Options -MultiViews
+RewriteEngine On
+
+# PHP прокси для Yandex STT
+RewriteRule ^api/stt$ api/stt.php [L,QSA]
+
+# SPA — все остальные пути → index.html
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [L]
