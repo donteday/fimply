@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
 import Transactions from './pages/Transactions';
@@ -22,12 +22,28 @@ function TabBar() {
   const location = useLocation();
   const isModal = location.pathname === '/add' || location.pathname === '/settings' || location.pathname === '/goals';
 
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
+
+  const activeIdx = TABS.findIndex(t => t.path === location.pathname);
+
+  useEffect(() => {
+    if (activeIdx === -1) { setPill(null); return; }
+    const btn = tabRefs.current[activeIdx];
+    const container = containerRef.current;
+    if (!btn || !container) return;
+    const btnRect = btn.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    setPill({ left: btnRect.left - containerRect.left, width: btnRect.width });
+  }, [activeIdx, isModal]);
+
   if (isModal) return null;
 
   const left = TABS.slice(0, 2);
   const right = TABS.slice(2);
 
-  const tabStyle = (active: boolean): React.CSSProperties => ({
+  const tabStyle = (): React.CSSProperties => ({
     flex: 1,
     paddingTop: 11,
     paddingBottom: 11,
@@ -37,7 +53,7 @@ function TabBar() {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: active ? 'rgba(216,255,90,0.12)' : 'transparent',
+    backgroundColor: 'transparent',
     cursor: 'pointer',
     zIndex: 1,
   });
@@ -47,6 +63,7 @@ function TabBar() {
     fontWeight: 600,
     fontSize: 12,
     color: active ? SB.lime : 'rgba(245,241,232,0.4)',
+    transition: 'color 0.25s ease',
   });
 
   return (
@@ -55,35 +72,57 @@ function TabBar() {
       bottom: 0,
       left: 0,
       right: 0,
+      zIndex: 100,
       paddingLeft: 16,
       paddingRight: 16,
       paddingTop: 10,
       paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
       pointerEvents: 'none',
     }}>
-      <div style={{
-        borderRadius: 28,
-        paddingLeft: 6,
-        paddingRight: 6,
-        paddingTop: 6,
-        paddingBottom: 6,
-        display: 'flex',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        overflow: 'hidden',
-        border: '1px solid rgba(255,255,255,0.08)',
-        boxShadow: `0 -2px 12px rgba(216,255,90,0.12)`,
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        backgroundColor: 'rgba(16,15,12,0.72)',
-        pointerEvents: 'auto',
-      }}>
-        {left.map(t => (
+      <div
+        ref={containerRef}
+        style={{
+          borderRadius: 28,
+          paddingLeft: 6,
+          paddingRight: 6,
+          paddingTop: 6,
+          paddingBottom: 6,
+          display: 'flex',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          overflow: 'hidden',
+          border: '1px solid rgba(255,255,255,0.08)',
+          boxShadow: `0 -2px 12px rgba(216,255,90,0.12)`,
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          backgroundColor: 'rgba(16,15,12,0.72)',
+          pointerEvents: 'auto',
+          position: 'relative',
+        }}
+      >
+        {/* Sliding pill background */}
+        {pill && (
+          <div style={{
+            position: 'absolute',
+            top: 6,
+            bottom: 6,
+            left: pill.left,
+            width: pill.width,
+            borderRadius: 22,
+            backgroundColor: 'rgba(216,255,90,0.12)',
+            transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            pointerEvents: 'none',
+            zIndex: 0,
+          }} />
+        )}
+
+        {left.map((t, i) => (
           <button
             key={t.path}
+            ref={el => { tabRefs.current[i] = el; }}
             onClick={() => navigate(t.path)}
-            style={tabStyle(location.pathname === t.path)}
+            style={tabStyle()}
           >
             <span style={labelStyle(location.pathname === t.path)}>{t.name}</span>
           </button>
@@ -92,11 +131,12 @@ function TabBar() {
         {/* spacer for + button */}
         <div style={{ width: 60 }} />
 
-        {right.map(t => (
+        {right.map((t, i) => (
           <button
             key={t.path}
+            ref={el => { tabRefs.current[i + 2] = el; }}
             onClick={() => navigate(t.path)}
-            style={tabStyle(location.pathname === t.path)}
+            style={tabStyle()}
           >
             <span style={labelStyle(location.pathname === t.path)}>{t.name}</span>
           </button>

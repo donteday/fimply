@@ -102,6 +102,20 @@ export async function setSetting(key: string, value: string): Promise<void> {
   await db.put('settings', value, key);
 }
 
+// ─── AI Chat ──────────────────────────────────────────────────────────────────
+
+export async function saveChatMessages(messages: Array<{ id: string; role: 'ai' | 'user'; text: string }>): Promise<void> {
+  const db = await getDb();
+  await db.put('settings', JSON.stringify(messages), 'aiChat');
+}
+
+export async function getChatMessages(): Promise<Array<{ id: string; role: 'ai' | 'user'; text: string }> | null> {
+  const db = await getDb();
+  const val = await db.get('settings', 'aiChat');
+  if (!val) return null;
+  try { return JSON.parse(val as string); } catch { return null; }
+}
+
 // ─── Goals ────────────────────────────────────────────────────────────────────
 
 export async function saveGoal(g: Goal): Promise<void> {

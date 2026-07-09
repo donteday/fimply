@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { SB } from '../theme/colors';
 import { F } from '../theme/fonts';
 import { chatWithAI, ChatMessage } from '../services/deepseek';
-import { getTransactions } from '../services/storage';
+import { getTransactions, saveChatMessages, getChatMessages } from '../services/storage';
 import { Transaction } from '../types';
 
 interface Message { id: string; role: 'ai' | 'user'; text: string; }
@@ -17,10 +17,19 @@ export default function AI() {
   const [loading, setLoading] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
+  const dbLoadedRef = useRef(false);
 
   useEffect(() => {
     getTransactions(100).then(setTransactions).catch(() => {});
+    getChatMessages().then(saved => {
+      if (saved && saved.length > 0) setMessages(saved);
+    }).catch(() => {}).finally(() => { dbLoadedRef.current = true; });
   }, []);
+
+  useEffect(() => {
+    if (!dbLoadedRef.current) return;
+    saveChatMessages(messages).catch(() => {});
+  }, [messages]);
 
   const scrollToBottom = () => {
     requestAnimationFrame(() => {
@@ -49,7 +58,7 @@ export default function AI() {
       const reply = await chatWithAI(history, transactions);
       const aiMsg: Message = { id: (Date.now() + 1).toString(), role: 'ai', text: reply };
       setMessages(prev => [...prev, aiMsg]);
-    } catch (e: any) {
+    } catch {
       const errMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'ai',
@@ -61,6 +70,8 @@ export default function AI() {
       scrollToBottom();
     }
   };
+
+  const hasText = input.trim().length > 0;
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: SB.bg }}>
@@ -116,36 +127,61 @@ export default function AI() {
       </div>
 
       {/* Input bar */}
-      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: '12px 16px', paddingBottom: 90 }}>
-        <textarea
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
-          placeholder="спросить что-нибудь…"
-          rows={1}
-          disabled={loading}
-          style={{
-            flex: 1, backgroundColor: SB.card, border: `1.5px solid ${SB.stroke}`,
-            borderRadius: 20, padding: '12px 16px', fontFamily: F.sans, fontSize: 14,
-            color: SB.text, resize: 'none', maxHeight: 100, overflowY: 'auto',
-            opacity: loading ? 0.6 : 1,
-          }}
-        />
-        <button
-          onClick={() => sendMessage(input)}
-          disabled={loading || !input.trim()}
-          style={{
-            width: 48, height: 48, borderRadius: 16,
-            backgroundColor: loading || !input.trim() ? SB.card : SB.lime,
-            border: `1.5px solid ${loading || !input.trim() ? SB.stroke : SB.ink}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: loading || !input.trim() ? 'none' : `3px 3px 0px ${SB.ink}`,
-            flexShrink: 0, cursor: loading || !input.trim() ? 'default' : 'pointer',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          <span style={{ fontFamily: F.sansSemiBold, fontWeight: 600, fontSize: 20, color: loading || !input.trim() ? SB.muted : SB.ink }}>↑</span>
-        </button>
+      <div style={{ padding: '12px 16px', paddingBottom: 90 }}>
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end' }}>
+          <textarea
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
+            placeholder="спросить что-нибудь…"
+            rows={1}
+            disabled={loading}
+            style={{
+              width: '100%',
+              boxSizing: 'border-box',
+              backgroundColor: SB.card,
+              border: `1.5px solid ${SB.stroke}`,
+              borderRadius: 24,
+              padding: '12px 56px 12px 16px',
+              fontFamily: F.sans,
+              fontSize: 14,
+              color: SB.text,
+              resize: 'none',
+              maxHeight: 120,
+              overflowY: 'auto',
+              opacity: loading ? 0.6 : 1,
+            }}
+          />
+          <button
+            onClick={() => sendMessage(input)}
+            disabled={loading || !hasText}
+            style={{
+              position: 'absolute',
+              right: 6,
+              bottom: 6,
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              backgroundColor: hasText && !loading ? SB.lime : 'rgba(245,241,232,0.08)',
+              border: `1.5px solid ${hasText && !loading ? SB.ink : 'transparent'}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: 'none',
+              cursor: hasText && !loading ? 'pointer' : 'default',
+              transition: 'all 0.15s ease',
+              flexShrink: 0,
+            }}
+          >
+            <span style={{
+              fontFamily: F.sansSemiBold,
+              fontWeight: 600,
+              fontSize: 16,
+              color: hasText && !loading ? SB.ink : SB.muted,
+              lineHeight: 1,
+            }}>↑</span>
+          </button>
+        </div>
       </div>
 
       <style>{`
@@ -153,6 +189,8 @@ export default function AI() {
           0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
           30% { transform: translateY(-6px); opacity: 1; }
         }
+        textarea::placeholder { color: rgba(245,241,232,0.3); }
+        textarea:focus { outline: none; border-color: ${SB.stroke}; }
       `}</style>
     </div>
   );
