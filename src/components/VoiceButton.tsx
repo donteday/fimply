@@ -98,33 +98,36 @@ export function VoiceButton({ onResult }: Props) {
   const isProcessing = state === 'processing';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-      {isRecording && (
-        <>
-          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 130, height: 130, borderRadius: 65, border: `1.5px solid ${SB.lime}`, animation: 'ringPulse 1.5s ease-out infinite' }} />
-          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 130, height: 130, borderRadius: 65, border: `1.5px solid ${SB.lime}`, animation: 'ringPulse 1.5s ease-out 0.5s infinite' }} />
-        </>
-      )}
-      <button
-        onPointerDown={state === 'idle' ? startRecording : undefined}
-        onPointerUp={isRecording ? stopRecording : undefined}
-        onPointerLeave={isRecording ? stopRecording : undefined}
-        disabled={isProcessing}
-        style={{
-          width: 80, height: 80, borderRadius: 40,
-          backgroundColor: isRecording ? SB.danger : SB.lime,
-          border: `1.5px solid ${SB.ink}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: isProcessing ? 'none' : `4px 4px 0px ${SB.ink}`,
-          opacity: isProcessing ? 0.6 : 1,
-          cursor: isProcessing ? 'default' : 'pointer',
-          userSelect: 'none', touchAction: 'none',
-          position: 'relative', zIndex: 1,
-        }}
-      >
-        <span style={{ fontSize: 32 }}>{isProcessing ? '…' : '🎤'}</span>
-      </button>
-      <span style={{ fontFamily: F.mono, fontSize: 10, color: SB.dim, letterSpacing: 1.5, marginTop: 16, textAlign: 'center' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      {/* Wrapper sized to rings so absolute children center on the button */}
+      <div style={{ position: 'relative', width: 130, height: 130, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {isRecording && (
+          <>
+            <div style={{ position: 'absolute', top: 0, left: 0, width: 130, height: 130, borderRadius: 65, border: `1.5px solid ${SB.lime}`, animation: 'ringPulse 1.5s ease-out infinite' }} />
+            <div style={{ position: 'absolute', top: 0, left: 0, width: 130, height: 130, borderRadius: 65, border: `1.5px solid ${SB.lime}`, animation: 'ringPulse 1.5s ease-out 0.5s infinite' }} />
+          </>
+        )}
+        <button
+          onPointerDown={state === 'idle' ? startRecording : undefined}
+          onPointerUp={isRecording ? stopRecording : undefined}
+          onPointerLeave={isRecording ? stopRecording : undefined}
+          disabled={isProcessing}
+          style={{
+            width: 80, height: 80, borderRadius: 40,
+            backgroundColor: isRecording ? SB.danger : SB.lime,
+            border: `1.5px solid ${SB.ink}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: isProcessing ? 'none' : `4px 4px 0px ${SB.ink}`,
+            opacity: isProcessing ? 0.6 : 1,
+            cursor: isProcessing ? 'default' : 'pointer',
+            userSelect: 'none', touchAction: 'none',
+            position: 'relative', zIndex: 1,
+          }}
+        >
+          <span style={{ fontSize: 32 }}>{isProcessing ? '…' : '🎤'}</span>
+        </button>
+      </div>
+      <span style={{ fontFamily: F.mono, fontSize: 10, color: SB.dim, letterSpacing: 1.5, marginTop: 12, textAlign: 'center' }}>
         {isRecording ? '● ОТПУСТИ ЧТОБЫ ОТПРАВИТЬ' : isProcessing ? 'ОБРАБАТЫВАЮ…' : 'ДЕРЖИ И ГОВОРИ'}
       </span>
       {error && (
