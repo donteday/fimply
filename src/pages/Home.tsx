@@ -10,6 +10,7 @@ import { AICallout } from '../components/AICallout';
 import { TransactionRow } from '../components/TransactionRow';
 import { fmtMonthYear } from '../utils/format';
 import { getSetting, getTransactionsByMonth, getBudgets } from '../services/storage';
+import { getHomeInsight } from '../services/deepseek';
 import { Transaction, Budget } from '../types';
 
 function calcStreak(transactions: Transaction[]): number {
@@ -42,11 +43,21 @@ export default function Home() {
   const [userName, setUserName] = useState('');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [insightLoading, setInsightLoading] = useState(false);
 
   useEffect(() => {
     getSetting('userName', '').then(setUserName);
-    getTransactionsByMonth(CURRENT_MONTH, CURRENT_YEAR).then(setTransactions);
     getBudgets(CURRENT_MONTH, CURRENT_YEAR).then(setBudgets);
+    getTransactionsByMonth(CURRENT_MONTH, CURRENT_YEAR).then(txs => {
+      setTransactions(txs);
+      if (txs.length > 0) {
+        setInsightLoading(true);
+        getHomeInsight(txs)
+          .then(text => { if (text) setAiInsight(text); })
+          .finally(() => setInsightLoading(false));
+      }
+    });
   }, [location.key]);
 
   const income = transactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
@@ -55,11 +66,12 @@ export default function Home() {
   const topBudget = [...budgets].sort((a, b) => (b.spent / (b.limit || 1)) - (a.spent / (a.limit || 1)))[0];
   const totalBudget = budgets.reduce((s, b) => s + b.limit, 0);
   const streak = calcStreak(transactions);
-  const insightText = transactions.length === 0
+  const fallbackInsight = transactions.length === 0
     ? 'Добавь первую трату голосом — просто нажми +'
     : expenses > 0
       ? `За этот месяц потрачено ${expenses.toLocaleString('ru')} ₽ — ${transactions.filter(t => t.amount < 0).length} операций`
       : 'Трат пока нет — отличное начало месяца';
+  const insightText = aiInsight ?? fallbackInsight;
 
   const monthLabel = fmtMonthYear(CURRENT_MONTH, CURRENT_YEAR).split(' ')[0];
 
@@ -114,7 +126,8 @@ export default function Home() {
         {/* AI callout */}
         <div style={{ paddingLeft: 20, paddingRight: 20, paddingTop: 20 }}>
           <AICallout
-            quote={`«${insightText.slice(0, 80)}»`}
+            quote={aiInsight ? `«${aiInsight}»` : `«${fallbackInsight}»`}
+            loading={insightLoading}
             onPress={() => navigate('/ai')}
           />
         </div>

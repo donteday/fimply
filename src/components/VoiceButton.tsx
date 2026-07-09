@@ -101,8 +101,8 @@ export function VoiceButton({ onResult }: Props) {
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
       {isRecording && (
         <>
-          <div style={{ position: 'absolute', width: 130, height: 130, borderRadius: 65, border: `1.5px solid ${SB.lime}`, animation: 'ringPulse 1.5s ease-out infinite' }} />
-          <div style={{ position: 'absolute', width: 130, height: 130, borderRadius: 65, border: `1.5px solid ${SB.lime}`, animation: 'ringPulse 1.5s ease-out 0.5s infinite' }} />
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 130, height: 130, borderRadius: 65, border: `1.5px solid ${SB.lime}`, animation: 'ringPulse 1.5s ease-out infinite' }} />
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 130, height: 130, borderRadius: 65, border: `1.5px solid ${SB.lime}`, animation: 'ringPulse 1.5s ease-out 0.5s infinite' }} />
         </>
       )}
       <button

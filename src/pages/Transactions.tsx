@@ -6,6 +6,7 @@ import { TransactionRow } from '../components/TransactionRow';
 import { getTransactionsByMonth } from '../services/storage';
 import { fmtDate } from '../utils/format';
 import { Transaction } from '../types';
+import { deleteTransaction } from '../services/storage';
 
 const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 
@@ -36,6 +37,11 @@ export default function Transactions() {
     !search || tx.merchant.toLowerCase().includes(search.toLowerCase())
   );
   const sections = groupByDay(filtered);
+
+  const handleDelete = async (id: string) => {
+    await deleteTransaction(id);
+    setTransactions(prev => prev.filter(t => t.id !== id));
+  };
 
   const prevMonth = () => {
     if (month === 0) { setMonth(11); setYear(y => y - 1); }
@@ -92,7 +98,7 @@ export default function Transactions() {
               <span style={{ fontFamily: F.mono, fontSize: 11, color: SB.dim, letterSpacing: 1, display: 'block', marginBottom: 8, marginTop: 4 }}>
                 {title}
               </span>
-              {data.map(tx => <TransactionRow key={tx.id} tx={tx} />)}
+              {data.map(tx => <TransactionRow key={tx.id} tx={tx} onDelete={() => handleDelete(tx.id)} />)}
             </div>
           ))
         )}
