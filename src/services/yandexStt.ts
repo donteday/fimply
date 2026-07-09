@@ -9,10 +9,16 @@ export async function transcribeAudio(pcmBlob: Blob): Promise<string> {
     body: pcmBlob,
   });
 
-  const data = await response.json();
+  const text = await response.text();
   if (!response.ok) {
-    throw new Error(data?.error?.message ?? `Yandex STT error ${response.status}`);
+    let msg = `Yandex STT error ${response.status}`;
+    try { msg = JSON.parse(text)?.error?.message ?? msg; } catch {}
+    throw new Error(msg);
   }
 
-  return data.result as string;
+  try {
+    return (JSON.parse(text) as { result: string }).result;
+  } catch {
+    throw new Error('Неверный ответ от сервера — проверь что /api/stt работает');
+  }
 }
