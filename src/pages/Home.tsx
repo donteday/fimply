@@ -9,8 +9,10 @@ import { StreakBlock } from '../components/StreakBlock';
 import { AICallout } from '../components/AICallout';
 import { TransactionRow } from '../components/TransactionRow';
 import { fmtMonthYear } from '../utils/format';
-import { getSetting, getTransactionsByMonth, getBudgets } from '../services/storage';
+import { getSetting, getTransactionsByMonth, getBudgets, getActiveGoal } from '../services/storage';
 import { getHomeInsight } from '../services/deepseek';
+import { GoalBlock } from '../components/GoalBlock';
+import { Goal } from '../types';
 import { Transaction, Budget } from '../types';
 
 function calcStreak(transactions: Transaction[]): number {
@@ -45,10 +47,12 @@ export default function Home() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [insightLoading, setInsightLoading] = useState(false);
+  const [goal, setGoal] = useState<Goal | null>(null);
 
   useEffect(() => {
     getSetting('userName', '').then(setUserName);
     getBudgets(CURRENT_MONTH, CURRENT_YEAR).then(setBudgets);
+    getActiveGoal().then(setGoal);
     getTransactionsByMonth(CURRENT_MONTH, CURRENT_YEAR).then(txs => {
       setTransactions(txs);
       if (txs.length > 0) {
@@ -121,6 +125,20 @@ export default function Home() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <StreakBlock days={streak} />
           </div>
+        </div>
+
+        {/* Goal block */}
+        <div style={{ paddingLeft: 20, paddingRight: 20, paddingTop: 16 }}>
+          {goal ? (
+            <GoalBlock goal={goal} transactions={transactions} onClick={() => navigate('/goals')} />
+          ) : (
+            <button
+              onClick={() => navigate('/goals')}
+              style={{ width: '100%', padding: '14px 18px', borderRadius: 16, backgroundColor: 'transparent', border: `1.5px dashed ${SB.stroke}`, cursor: 'pointer', textAlign: 'left' }}
+            >
+              <span style={{ fontFamily: F.sans, fontSize: 14, color: SB.dim }}>+ поставь цель и узнай сколько мог бы накопить</span>
+            </button>
+          )}
         </div>
 
         {/* AI callout */}

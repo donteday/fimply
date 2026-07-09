@@ -1,11 +1,11 @@
 import { openDB, IDBPDatabase } from 'idb';
-import { Transaction, Budget, Category } from '../types';
+import { Transaction, Budget, Category, Goal } from '../types';
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
 
 function getDb() {
   if (!dbPromise) {
-    dbPromise = openDB('fimply', 1, {
+    dbPromise = openDB('fimply', 2, {
       upgrade(db) {
         if (!db.objectStoreNames.contains('transactions')) {
           db.createObjectStore('transactions', { keyPath: 'id' });
@@ -15,6 +15,9 @@ function getDb() {
         }
         if (!db.objectStoreNames.contains('settings')) {
           db.createObjectStore('settings');
+        }
+        if (!db.objectStoreNames.contains('goals')) {
+          db.createObjectStore('goals', { keyPath: 'id' });
         }
       },
     });
@@ -92,6 +95,25 @@ export async function getSetting(key: string, defaultValue = ''): Promise<string
 export async function setSetting(key: string, value: string): Promise<void> {
   const db = await getDb();
   await db.put('settings', value, key);
+}
+
+// ─── Goals ────────────────────────────────────────────────────────────────────
+
+export async function saveGoal(g: Goal): Promise<void> {
+  const db = await getDb();
+  await db.put('goals', g);
+}
+
+export async function getActiveGoal(): Promise<Goal | null> {
+  const db = await getDb();
+  const all = await db.getAll('goals') as Goal[];
+  if (!all.length) return null;
+  return all.sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+}
+
+export async function deleteGoal(id: string): Promise<void> {
+  const db = await getDb();
+  await db.delete('goals', id);
 }
 
 export async function clearAllData(): Promise<void> {

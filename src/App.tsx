@@ -6,6 +6,7 @@ import Add from './pages/Add';
 import Analytics from './pages/Analytics';
 import AI from './pages/AI';
 import Settings from './pages/Settings';
+import Goals from './pages/Goals';
 import { SB } from './theme/colors';
 import { F } from './theme/fonts';
 
@@ -19,7 +20,7 @@ const TABS = [
 function TabBar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const isModal = location.pathname === '/add' || location.pathname === '/settings';
+  const isModal = location.pathname === '/add' || location.pathname === '/settings' || location.pathname === '/goals';
 
   if (isModal) return null;
 
@@ -152,6 +153,7 @@ export default function App() {
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/ai" element={<AI />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/goals" element={<Goals />} />
         </Routes>
       </div>
       <TabBar />

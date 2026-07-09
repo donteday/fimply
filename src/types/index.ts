@@ -32,6 +32,15 @@ export interface Budget {
   year: number;
 }
 
+export interface Goal {
+  id: string;
+  name: string;
+  emoji: string;
+  targetAmount: number;
+  deadline: string; // ISO date string
+  createdAt: string;
+}
+
 export interface ParsedTransaction {
   amount: number;
   category: Category;
