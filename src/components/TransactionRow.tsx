@@ -1,55 +1,130 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { SB } from '../theme/colors';
 import { F } from '../theme/fonts';
 import { Transaction } from '../types';
 import { getCategoryMeta } from '../utils/categories';
 import { fmtPlain, fmtTime } from '../utils/format';
 
-interface Props { tx: Transaction; onPress?: () => void; onDelete?: () => void; }
+interface Props {
+  tx: Transaction;
+  onPress?: () => void;
+  onDelete?: () => void;
+  onEdit?: () => void;
+}
 
-export function TransactionRow({ tx, onPress, onDelete }: Props) {
-  const [confirming, setConfirming] = useState(false);
+const REVEAL = 112; // px revealed on swipe (two action buttons)
+
+export function TransactionRow({ tx, onPress, onDelete, onEdit }: Props) {
+  const [offset, setOffset] = useState(0);
+  const [snapping, setSnapping] = useState(false);
+
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const dragBase = useRef(0);
+  const direction = useRef<'h' | 'v' | null>(null);
+
+  const snapTo = (x: number) => { setSnapping(true); setOffset(x); };
+  const closeActions = () => snapTo(0);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    startX.current = e.clientX;
+    startY.current = e.clientY;
+    dragBase.current = offset;
+    direction.current = null;
+    setSnapping(false);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    const dx = e.clientX - startX.current;
+    const dy = e.clientY - startY.current;
+
+    if (direction.current === null) {
+      if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+      direction.current = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+    }
+    if (direction.current !== 'h') return;
+
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    setOffset(Math.min(0, Math.max(-REVEAL, dragBase.current + dx)));
+  };
+
+  const handlePointerUp = () => {
+    if (direction.current !== 'h') return;
+    direction.current = null;
+    snapTo(offset < -REVEAL / 3 ? -REVEAL : 0);
+  };
+
+  const handleCardClick = () => {
+    if (offset < -4) { closeActions(); return; }
+    onPress?.();
+  };
+
+  const handleEdit = () => {
+    closeActions();
+    onEdit?.();
+  };
+
+  const handleDelete = () => {
+    closeActions();
+    onDelete?.();
+  };
+
   const isIncome = tx.amount > 0;
   const meta = getCategoryMeta(tx.category);
-
-  if (confirming) {
-    return (
-      <div style={{
-        display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        backgroundColor: 'rgba(255,119,102,0.1)', border: `1.5px solid ${SB.danger}`,
-        borderRadius: 16, padding: '12px 14px', marginBottom: 8,
-      }}>
-        <span style={{ fontFamily: F.sans, fontSize: 14, color: SB.danger }}>Удалить «{tx.merchant}»?</span>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            onClick={() => { onDelete?.(); }}
-            style={{ padding: '6px 14px', borderRadius: 10, backgroundColor: SB.danger, border: 'none', cursor: 'pointer' }}
-          >
-            <span style={{ fontFamily: F.sansSemiBold, fontWeight: 600, fontSize: 13, color: '#fff' }}>Да</span>
-          </button>
-          <button
-            onClick={() => setConfirming(false)}
-            style={{ padding: '6px 14px', borderRadius: 10, backgroundColor: SB.card, border: `1.5px solid ${SB.stroke}`, cursor: 'pointer' }}
-          >
-            <span style={{ fontFamily: F.sans, fontSize: 13, color: SB.muted }}>Нет</span>
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const hasActions = !!(onEdit || onDelete);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+    <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', marginBottom: 8 }}>
+      {/* Action buttons — revealed on swipe */}
+      {hasActions && (
+        <div style={{
+          position: 'absolute', right: 0, top: 0, bottom: 0,
+          display: 'flex', alignItems: 'stretch', gap: 6, padding: 6,
+          width: REVEAL,
+        }}>
+          {onEdit && (
+            <button
+              onClick={handleEdit}
+              style={{
+                flex: 1, borderRadius: 10, backgroundColor: SB.lime,
+                border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <span style={{ fontSize: 18 }}>✏️</span>
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={handleDelete}
+              style={{
+                flex: 1, borderRadius: 10, backgroundColor: SB.danger,
+                border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <span style={{ fontFamily: F.sansSemiBold, fontWeight: 600, fontSize: 18, color: '#fff' }}>✕</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Sliding card */}
       <div
-        role="button"
-        tabIndex={0}
-        onClick={onPress}
-        onKeyDown={e => e.key === 'Enter' && onPress?.()}
+        onPointerDown={hasActions ? handlePointerDown : undefined}
+        onPointerMove={hasActions ? handlePointerMove : undefined}
+        onPointerUp={hasActions ? handlePointerUp : undefined}
+        onPointerCancel={hasActions ? handlePointerUp : undefined}
+        onClick={handleCardClick}
         style={{
-          flex: 1, display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 14,
+          position: 'relative', zIndex: 1,
+          transform: `translateX(${offset}px)`,
+          transition: snapping ? 'transform 0.22s cubic-bezier(0.25, 0.8, 0.25, 1)' : 'none',
+          touchAction: 'pan-y', userSelect: 'none',
+          display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 14,
           backgroundColor: SB.card, border: `1.5px solid ${SB.stroke}`,
-          borderRadius: 16, padding: 12, textAlign: 'left',
-          cursor: onPress ? 'pointer' : 'default', minWidth: 0,
+          borderRadius: 16, padding: 12, cursor: onPress ? 'pointer' : 'default',
         }}
       >
         <div style={{
@@ -72,19 +147,6 @@ export function TransactionRow({ tx, onPress, onDelete }: Props) {
           {isIncome ? '+' : '−'}{fmtPlain(Math.abs(tx.amount))}
         </span>
       </div>
-
-      {onDelete && (
-        <button
-          onClick={() => setConfirming(true)}
-          style={{
-            width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-            backgroundColor: SB.card, border: `1.5px solid ${SB.stroke}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-          }}
-        >
-          <span style={{ fontSize: 15, color: SB.muted }}>✕</span>
-        </button>
-      )}
     </div>
   );
 }

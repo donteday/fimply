@@ -48,6 +48,11 @@ export async function getTransactionsByMonth(month: number, year: number): Promi
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
+export async function updateTransaction(t: Transaction): Promise<void> {
+  const db = await getDb();
+  await db.put('transactions', t);
+}
+
 export async function deleteTransaction(id: string): Promise<void> {
   const db = await getDb();
   await db.delete('transactions', id);
