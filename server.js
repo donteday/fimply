@@ -5,7 +5,7 @@ import { dirname, join } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
-const YANDEX_KEY = process.env.YANDEX_API_KEY || '';
+const YANDEX_KEY = process.env.YANDEX_API_KEY || process.env.VITE_YANDEX_API_KEY || '';
 
 const app = express();
 
