@@ -10,6 +10,7 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "dotenv": "^17.4.2",
     "express": "^4.21.2",
     "idb": "^8.0.0",
     "react": "^19.1.0",
