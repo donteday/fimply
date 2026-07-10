@@ -8,7 +8,13 @@ const DAY_ABBR = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 function fmtSmall(n: number): string {
   const abs = Math.abs(n);
   if (abs < 1) return '';
-  const s = abs >= 1000 ? `${Math.round(abs / 1000)}к` : `${Math.round(abs)}`;
+  let s: string;
+  if (abs >= 1000) {
+    const k = abs / 1000;
+    s = Number.isInteger(k) ? `${k}к` : `${k.toFixed(1).replace('.', ',')}к`;
+  } else {
+    s = `${Math.round(abs)}`;
+  }
   return n > 0 ? `+${s}` : `−${s}`;
 }
 
@@ -58,29 +64,20 @@ function WeekSlide({ transactions, dailyLimit }: WeekSlideProps) {
           let bg: string;
           let border: string;
           let textColor: string;
+          let amtTextColor: string;
           let dashed = false;
 
           if (isFuture) {
-            bg = 'transparent';
-            border = SB.stroke;
-            textColor = SB.dim;
-            dashed = true;
+            bg = 'transparent'; border = SB.stroke; textColor = SB.dim; amtTextColor = 'transparent'; dashed = true;
           } else if (!hasActivity) {
-            bg = SB.strokeHi;
-            border = SB.strokeHi;
-            textColor = SB.dim;
+            bg = SB.strokeHi; border = SB.strokeHi; textColor = SB.dim; amtTextColor = 'transparent';
           } else if (dailyLimit > 0 ? expenses > dailyLimit : expenses > income) {
-            bg = SB.danger;
-            border = SB.danger;
-            textColor = '#fff';
+            bg = SB.danger; border = SB.danger; textColor = '#fff'; amtTextColor = 'rgba(255,255,255,0.7)';
           } else {
-            bg = SB.lime;
-            border = SB.lime;
-            textColor = SB.ink;
+            bg = SB.lime; border = SB.lime; textColor = SB.ink; amtTextColor = 'rgba(15,14,12,0.55)';
           }
 
           const amtLabel = !isFuture && hasActivity ? fmtSmall(dailyLimit > 0 ? -expenses : net) : '';
-          const amtColor = net >= 0 ? SB.lime : SB.danger;
 
           return (
             <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
@@ -95,16 +92,21 @@ function WeekSlide({ transactions, dailyLimit }: WeekSlideProps) {
                 border: `1.5px ${dashed ? 'dashed' : 'solid'} ${isToday && !hasActivity ? SB.lime : border}`,
                 boxShadow: isToday ? '0 0 0 2px rgba(216,255,90,0.2)' : 'none',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
+                overflow: 'visible',
+                gap: 1,
               }}>
-                <span style={{ fontFamily: F.mono, fontSize: 11, color: textColor, fontWeight: isToday ? '700' : '400' }}>
+                <span style={{ fontFamily: F.mono, fontSize: 11, color: textColor, fontWeight: isToday ? '700' : '400', lineHeight: '13px' }}>
                   {date.getDate()}
                 </span>
+                {amtLabel ? (
+                  <span style={{ fontFamily: F.mono, fontSize: 7, color: amtTextColor, lineHeight: '9px', whiteSpace: 'nowrap' }}>
+                    {amtLabel}
+                  </span>
+                ) : null}
               </div>
-              <span style={{ fontFamily: F.mono, fontSize: 8, color: amtLabel ? amtColor : 'transparent', letterSpacing: 0.2, lineHeight: '10px' }}>
-                {amtLabel || '·'}
-              </span>
             </div>
           );
         })}

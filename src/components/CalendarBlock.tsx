@@ -26,7 +26,13 @@ const DAY_HEADERS = ['пн','вт','ср','чт','пт','сб','вс'];
 function fmtSmall(n: number): string {
   const abs = Math.abs(n);
   if (abs < 1) return '';
-  const s = abs >= 1000 ? `${Math.round(abs / 1000)}к` : `${Math.round(abs)}`;
+  let s: string;
+  if (abs >= 1000) {
+    const k = abs / 1000;
+    s = Number.isInteger(k) ? `${k}к` : `${k.toFixed(1).replace('.', ',')}к`;
+  } else {
+    s = `${Math.round(abs)}`;
+  }
   return n > 0 ? `+${s}` : `−${s}`;
 }
 
@@ -80,11 +86,11 @@ export function CalendarBlock({ month, year, onMonthChange, transactions, dailyL
     return data.expenses > data.income ? 'red' : 'green';
   };
 
-  const COLOR: Record<string, { bg: string; border: string; text: string; dashed: boolean }> = {
-    future: { bg: 'transparent',  border: SB.stroke,   text: SB.dim,     dashed: true  },
-    empty:  { bg: SB.strokeHi,    border: SB.strokeHi, text: SB.muted,   dashed: false },
-    green:  { bg: SB.lime,        border: SB.lime,     text: SB.ink,     dashed: false },
-    red:    { bg: SB.danger,      border: SB.danger,   text: '#fff',     dashed: false },
+  const COLOR: Record<string, { bg: string; border: string; text: string; amtText: string; dashed: boolean }> = {
+    future: { bg: 'transparent', border: SB.stroke,   text: SB.dim,   amtText: 'transparent',          dashed: true  },
+    empty:  { bg: SB.strokeHi,   border: SB.strokeHi, text: SB.muted, amtText: 'transparent',          dashed: false },
+    green:  { bg: SB.lime,       border: SB.lime,      text: SB.ink,   amtText: 'rgba(15,14,12,0.55)', dashed: false },
+    red:    { bg: SB.danger,     border: SB.danger,    text: '#fff',   amtText: 'rgba(255,255,255,0.7)', dashed: false },
   };
 
   const selectedData = selectedDay !== null ? dayMap.get(selectedDay) : null;
@@ -131,7 +137,7 @@ export function CalendarBlock({ month, year, onMonthChange, transactions, dailyL
       {/* Days grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', rowGap: 4 }}>
         {cells.map((day, i) => {
-          if (day === null) return <div key={i} style={{ height: 64 }} />;
+          if (day === null) return <div key={i} />;
           const kind = getDayKind(day);
           const c = COLOR[kind];
           const isToday = isCurrentMonth && day === todayDay;
@@ -139,13 +145,12 @@ export function CalendarBlock({ month, year, onMonthChange, transactions, dailyL
           const data = dayMap.get(day);
           const net = data ? data.income - data.expenses : 0;
           const amtLabel = kind === 'future' || kind === 'empty' ? '' : fmtSmall(dailyLimit > 0 ? -data!.expenses : net);
-          const amtColor = net > 0 ? SB.lime : SB.danger;
 
           return (
             <div
               key={i}
               onClick={() => setSelectedDay(isSelected ? null : day)}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: kind === 'future' ? 'default' : 'pointer', paddingTop: 2, paddingBottom: 2, gap: 2 }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: kind === 'future' ? 'default' : 'pointer', paddingTop: 3, paddingBottom: 3 }}
             >
               <div style={{
                 width: 42,
@@ -154,26 +159,24 @@ export function CalendarBlock({ month, year, onMonthChange, transactions, dailyL
                 backgroundColor: c.bg,
                 border: `${isSelected ? 2.5 : 1.5}px ${c.dashed ? 'dashed' : 'solid'} ${isSelected ? SB.text : isToday && kind !== 'green' && kind !== 'red' ? SB.lime : c.border}`,
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
+                overflow: 'visible',
                 boxShadow: isToday && !isSelected ? `0 0 0 2px rgba(216,255,90,0.2)` : 'none',
                 transition: 'transform 0.1s',
                 transform: isSelected ? 'scale(0.92)' : 'scale(1)',
+                gap: 1,
               }}>
-                <span style={{ fontFamily: F.mono, fontSize: 11, color: c.text, fontWeight: isToday ? '700' : '400' }}>
+                <span style={{ fontFamily: F.mono, fontSize: 11, color: c.text, fontWeight: isToday ? '700' : '400', lineHeight: '13px' }}>
                   {day}
                 </span>
+                {amtLabel ? (
+                  <span style={{ fontFamily: F.mono, fontSize: 7, color: c.amtText, lineHeight: '9px', whiteSpace: 'nowrap', userSelect: 'none' }}>
+                    {amtLabel}
+                  </span>
+                ) : null}
               </div>
-              <span style={{
-                fontFamily: F.mono,
-                fontSize: 8,
-                color: amtLabel ? amtColor : 'transparent',
-                letterSpacing: 0.2,
-                lineHeight: '10px',
-                userSelect: 'none',
-              }}>
-                {amtLabel || '·'}
-              </span>
             </div>
           );
         })}
