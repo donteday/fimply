@@ -88,9 +88,9 @@ function WeekSlide({ transactions, dailyLimit }: WeekSlideProps) {
                 {DAY_ABBR[date.getDay()]}
               </span>
               <div style={{
-                width: 38,
-                height: 38,
-                borderRadius: 19,
+                width: 44,
+                height: 44,
+                borderRadius: 22,
                 backgroundColor: bg,
                 border: `1.5px ${dashed ? 'dashed' : 'solid'} ${isToday && !hasActivity ? SB.lime : border}`,
                 boxShadow: isToday ? '0 0 0 2px rgba(216,255,90,0.2)' : 'none',
