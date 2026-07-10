@@ -405,11 +405,11 @@ export default function App() {
         {/* Gradient fade — sits above scrollable content, below tab bar */}
         <div style={{
           position: 'absolute',
-          bottom: 0,
+          bottom: -2,
           left: 0,
           right: 0,
-          height: 90,
-          background: `linear-gradient(to bottom, transparent, ${SB.bg} 80%)`,
+          height: 92,
+          background: `linear-gradient(to bottom, transparent, ${SB.bg} 75%)`,
           pointerEvents: 'none',
           zIndex: 50,
         }} />
