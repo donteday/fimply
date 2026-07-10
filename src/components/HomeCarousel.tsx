@@ -21,11 +21,16 @@ interface WeekSlideProps {
 
 function WeekSlide({ transactions, dailyLimit }: WeekSlideProps) {
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Start from most recent Monday
+  const daysSinceMonday = (today.getDay() + 6) % 7; // Mon=0 … Sun=6
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - daysSinceMonday);
 
   const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(today);
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() - (6 - i));
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
     return d;
   });
 
@@ -40,20 +45,27 @@ function WeekSlide({ transactions, dailyLimit }: WeekSlideProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <span style={{ fontFamily: F.mono, fontSize: 11, color: SB.dim, letterSpacing: 1, display: 'block', marginBottom: 14 }}>
-        ПОСЛЕДНИЕ 7 ДНЕЙ
+        ЭТА НЕДЕЛЯ
       </span>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', flex: 1, gap: 2 }}>
         {dayData.map(({ date, income, expenses }, i) => {
-          const isToday = i === 6;
+          const isFuture = date > today;
+          const isToday = date.getTime() === today.getTime();
           const hasActivity = income > 0 || expenses > 0;
           const net = income - expenses;
 
           let bg: string;
           let border: string;
           let textColor: string;
+          let dashed = false;
 
-          if (!hasActivity) {
+          if (isFuture) {
+            bg = 'transparent';
+            border = SB.stroke;
+            textColor = SB.dim;
+            dashed = true;
+          } else if (!hasActivity) {
             bg = SB.strokeHi;
             border = SB.strokeHi;
             textColor = SB.dim;
@@ -67,7 +79,7 @@ function WeekSlide({ transactions, dailyLimit }: WeekSlideProps) {
             textColor = SB.ink;
           }
 
-          const amtLabel = hasActivity ? fmtSmall(dailyLimit > 0 ? -expenses : net) : '';
+          const amtLabel = !isFuture && hasActivity ? fmtSmall(dailyLimit > 0 ? -expenses : net) : '';
           const amtColor = net >= 0 ? SB.lime : SB.danger;
 
           return (
@@ -80,7 +92,7 @@ function WeekSlide({ transactions, dailyLimit }: WeekSlideProps) {
                 height: 38,
                 borderRadius: 19,
                 backgroundColor: bg,
-                border: `1.5px solid ${isToday && !hasActivity ? SB.lime : border}`,
+                border: `1.5px ${dashed ? 'dashed' : 'solid'} ${isToday && !hasActivity ? SB.lime : border}`,
                 boxShadow: isToday ? '0 0 0 2px rgba(216,255,90,0.2)' : 'none',
                 display: 'flex',
                 alignItems: 'center',
