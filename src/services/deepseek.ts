@@ -117,17 +117,22 @@ export async function getHomeInsight(transactions: Transaction[]): Promise<strin
   } catch {}
 
   const context = buildFinanceContext(transactions);
+  const useBabylon = Math.random() < 0.35;
+  const systemPrompt = useBabylon
+    ? `Ты Fimply — финансовый наставник. Дай один совет в духе книги «Самый богатый человек в Вавилоне» — вечная мудрость о деньгах, немного торжественно, как афоризм или от лица мудреца. 1–2 предложения. Если уместно — свяжи с данными пользователя, иначе дай универсальный принцип. Только русский.${context}`
+    : `Ты Fimply — финансовый наставник. Дай один честный инсайт (1–2 предложения) о финансах пользователя этого месяца. Чиловый тон, конкретные цифры из данных, без воды. Только русский.${context}`;
+
   const response = await fetch(BASE_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
     body: JSON.stringify({
       model: MODEL,
       messages: [
-        { role: 'system', content: `Ты Fimply — финансовый наставник. Дай один честный инсайт (1–2 предложения) о финансах пользователя этого месяца. Чиловый тон, конкретные цифры из данных, без воды. Только русский.${context}` },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: 'Что скажешь про мои финансы?' },
       ],
-      temperature: 0.7,
-      max_tokens: 120,
+      temperature: 0.75,
+      max_tokens: 130,
     }),
   });
 
