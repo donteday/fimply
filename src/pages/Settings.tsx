@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { SB } from '../theme/colors';
 import { F } from '../theme/fonts';
 import { getSetting, setSetting, clearAllData } from '../services/storage';
-import { getPermissionState, requestAndEnable, scheduleReminder, cancelReminder } from '../services/notifications';
+import { getPermissionState, requestAndEnable, scheduleReminder, cancelReminder, cancelMorningBriefing } from '../services/notifications';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -13,13 +13,36 @@ export default function Settings() {
   const [cleared, setCleared] = useState(false);
   const [notifPerm, setNotifPerm] = useState<ReturnType<typeof getPermissionState>>('default');
   const [notifEnabled, setNotifEnabled] = useState(false);
+  const [morningEnabled, setMorningEnabled] = useState(false);
 
   useEffect(() => {
     getSetting('userName', '').then(setUserName);
     getSetting('dailyLimit', '').then(setDailyLimit);
     setNotifPerm(getPermissionState());
     getSetting('notifEnabled', 'false').then(v => setNotifEnabled(v === 'true'));
+    getSetting('morningBriefEnabled', 'false').then(v => setMorningEnabled(v === 'true'));
   }, []);
+
+  const handleMorningToggle = async () => {
+    if (notifPerm === 'unsupported') return;
+    if (notifPerm !== 'granted') {
+      const ok = await requestAndEnable();
+      if (ok) {
+        setNotifPerm('granted');
+        setMorningEnabled(true);
+        setSetting('morningBriefEnabled', 'true');
+      }
+      return;
+    }
+    if (morningEnabled) {
+      cancelMorningBriefing();
+      setMorningEnabled(false);
+      setSetting('morningBriefEnabled', 'false');
+    } else {
+      setMorningEnabled(true);
+      setSetting('morningBriefEnabled', 'true');
+    }
+  };
 
   const handleNotifToggle = async () => {
     if (notifPerm === 'unsupported') return;
@@ -109,22 +132,46 @@ export default function Settings() {
           ) : notifPerm === 'denied' ? (
             <span style={{ fontFamily: F.sans, fontSize: 13, color: SB.danger }}>Уведомления заблокированы — разреши в настройках браузера</span>
           ) : (
-            <button
-              onClick={handleNotifToggle}
-              style={{
-                width: '100%', padding: '14px 18px', borderRadius: 14,
-                backgroundColor: notifEnabled ? 'rgba(216,255,90,0.1)' : SB.card,
-                border: `1.5px solid ${notifEnabled ? SB.lime : SB.stroke}`,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              }}
-            >
-              <span style={{ fontFamily: F.sansSemiBold, fontWeight: 600, fontSize: 15, color: notifEnabled ? SB.lime : SB.text }}>
-                {notifPerm !== 'granted' ? 'Включить напоминание' : notifEnabled ? 'Напоминание в 22:00' : 'Напоминание выключено'}
-              </span>
-              <span style={{ fontFamily: F.mono, fontSize: 12, color: notifEnabled ? SB.lime : SB.dim }}>
-                {notifPerm !== 'granted' ? 'разреши →' : notifEnabled ? 'ВКЛ' : 'ВЫКЛ'}
-              </span>
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                onClick={handleNotifToggle}
+                style={{
+                  width: '100%', padding: '14px 18px', borderRadius: 14,
+                  backgroundColor: notifEnabled ? 'rgba(216,255,90,0.1)' : SB.card,
+                  border: `1.5px solid ${notifEnabled ? SB.lime : SB.stroke}`,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <span style={{ fontFamily: F.sansSemiBold, fontWeight: 600, fontSize: 15, color: notifEnabled ? SB.lime : SB.text, display: 'block' }}>
+                    {notifPerm !== 'granted' ? 'Включить напоминание' : notifEnabled ? 'Напоминание в 22:00' : 'Напоминание выключено'}
+                  </span>
+                  <span style={{ fontFamily: F.sans, fontSize: 12, color: SB.dim }}>Напомним записать траты вечером</span>
+                </div>
+                <span style={{ fontFamily: F.mono, fontSize: 12, color: notifEnabled ? SB.lime : SB.dim }}>
+                  {notifPerm !== 'granted' ? 'разреши →' : notifEnabled ? 'ВКЛ' : 'ВЫКЛ'}
+                </span>
+              </button>
+              <button
+                onClick={handleMorningToggle}
+                style={{
+                  width: '100%', padding: '14px 18px', borderRadius: 14,
+                  backgroundColor: morningEnabled ? 'rgba(216,255,90,0.1)' : SB.card,
+                  border: `1.5px solid ${morningEnabled ? SB.lime : SB.stroke}`,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <span style={{ fontFamily: F.sansSemiBold, fontWeight: 600, fontSize: 15, color: morningEnabled ? SB.lime : SB.text, display: 'block' }}>
+                    {morningEnabled ? 'Утренний разбор в 10:00' : 'Утренний разбор выключен'}
+                  </span>
+                  <span style={{ fontFamily: F.sans, fontSize: 12, color: SB.dim }}>Мемный ИИ-анализ вчерашних трат</span>
+                </div>
+                <span style={{ fontFamily: F.mono, fontSize: 12, color: morningEnabled ? SB.lime : SB.dim }}>
+                  {morningEnabled ? 'ВКЛ' : 'ВЫКЛ'}
+                </span>
+              </button>
+            </div>
           )}
         </div>
 

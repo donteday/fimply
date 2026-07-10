@@ -145,6 +145,52 @@ export async function getHomeInsight(transactions: Transaction[]): Promise<strin
   return text || null;
 }
 
+export async function generateMorningBrief(transactions: Transaction[]): Promise<string | null> {
+  const key = getKey();
+  if (!key || key === 'your_deepseek_api_key_here') return null;
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yStr = yesterday.toDateString();
+
+  const yesterdayTxs = transactions.filter(t => new Date(t.date).toDateString() === yStr);
+
+  if (!yesterdayTxs.length) {
+    const noSpendFunny = [
+      'Вчера ты не потратил ни рубля. Кто-то скрывается от экономики 🥷',
+      'Ноль трат вчера. Либо дома сидел, либо карточку потерял — оба варианта финансово мудры 📊',
+      'Вчера: 0 ₽. Ты либо на монастырском питании, либо просто забыл занести в приложение 😅',
+    ];
+    return noSpendFunny[Math.floor(Math.random() * noSpendFunny.length)];
+  }
+
+  const total = yesterdayTxs.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+  const txList = yesterdayTxs
+    .map(t => `${t.merchant || t.description} ${t.amount > 0 ? '+' : ''}${t.amount}₽`)
+    .join(', ');
+
+  const response = await fetch(BASE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      model: MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: `Ты Fimply — финансовый аналитик с острым чувством юмора. Напиши мемный утренний разбор вчерашних трат: 1–2 предложения, интернет-сленг, по-доброму саркастично. Упомяни конкретные траты или сумму. Никаких советов — только искромётный комментарий. Только русский.`,
+        },
+        { role: 'user', content: `Вчера потрачено: ${total.toFixed(0)} ₽. Операции: ${txList}` },
+      ],
+      temperature: 0.95,
+      max_tokens: 130,
+    }),
+  });
+
+  if (!response.ok) return null;
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || null;
+}
+
 export async function chatWithAI(
   history: ChatMessage[],
   transactions: Transaction[] = [],

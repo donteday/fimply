@@ -12,7 +12,9 @@ import { F } from './theme/fonts';
 import { PcmRecorder } from './services/recorder';
 import { transcribeAudio } from './services/yandexStt';
 import { parseVoiceInput } from './services/deepseek';
-import { getPermissionState, scheduleReminder } from './services/notifications';
+import { getPermissionState, scheduleReminder, scheduleMorningBriefing } from './services/notifications';
+import { generateMorningBrief } from './services/deepseek';
+import { getTransactions } from './services/storage';
 
 const TABS = [
   { name: 'Дом', path: '/' },
@@ -391,9 +393,16 @@ function TabBar() {
 
 export default function App() {
   useEffect(() => {
+    if (getPermissionState() !== 'granted') return;
     import('./services/storage').then(({ getSetting }) => {
       getSetting('notifEnabled', 'false').then(v => {
-        if (v === 'true' && getPermissionState() === 'granted') scheduleReminder();
+        if (v === 'true') scheduleReminder();
+      });
+      getSetting('morningBriefEnabled', 'false').then(async v => {
+        if (v !== 'true') return;
+        const txs = await getTransactions(200);
+        const text = await generateMorningBrief(txs);
+        if (text) scheduleMorningBriefing(text);
       });
     });
   }, []);

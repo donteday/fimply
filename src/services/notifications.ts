@@ -12,6 +12,8 @@ const REMINDER_TEXTS = [
 ];
 
 let scheduledTimer: ReturnType<typeof setTimeout> | null = null;
+let morningTimer: ReturnType<typeof setTimeout> | null = null;
+const MORNING_CACHE = 'fimply_morning_brief';
 
 async function show(body: string) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
@@ -54,6 +56,44 @@ export function cancelReminder() {
   if (scheduledTimer) {
     clearTimeout(scheduledTimer);
     scheduledTimer = null;
+  }
+}
+
+export function scheduleMorningBriefing(text: string) {
+  if (Notification.permission !== 'granted') return;
+
+  const today = new Date().toDateString();
+  try {
+    const cached = localStorage.getItem(MORNING_CACHE);
+    if (cached) {
+      const { date, shown } = JSON.parse(cached);
+      if (date === today && shown) return;
+    }
+  } catch {}
+
+  const now = new Date();
+  const target = new Date();
+  target.setHours(10, 0, 0, 0);
+
+  if (now >= target) {
+    // Already past 10 AM today — skip, mark done
+    try { localStorage.setItem(MORNING_CACHE, JSON.stringify({ date: today, shown: true })); } catch {}
+    return;
+  }
+
+  try { localStorage.setItem(MORNING_CACHE, JSON.stringify({ date: today, text, shown: false })); } catch {}
+
+  if (morningTimer) clearTimeout(morningTimer);
+  morningTimer = setTimeout(async () => {
+    await show(text);
+    try { localStorage.setItem(MORNING_CACHE, JSON.stringify({ date: today, shown: true })); } catch {}
+  }, target.getTime() - now.getTime());
+}
+
+export function cancelMorningBriefing() {
+  if (morningTimer) {
+    clearTimeout(morningTimer);
+    morningTimer = null;
   }
 }
 
