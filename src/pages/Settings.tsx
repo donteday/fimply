@@ -7,12 +7,20 @@ import { getSetting, setSetting, clearAllData } from '../services/storage';
 export default function Settings() {
   const navigate = useNavigate();
   const [userName, setUserName] = useState('');
+  const [dailyLimit, setDailyLimit] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
   const [cleared, setCleared] = useState(false);
 
-  useEffect(() => { getSetting('userName', '').then(setUserName); }, []);
+  useEffect(() => {
+    getSetting('userName', '').then(setUserName);
+    getSetting('dailyLimit', '').then(setDailyLimit);
+  }, []);
 
   const saveUserName = () => setSetting('userName', userName);
+  const saveDailyLimit = () => {
+    const val = parseFloat(dailyLimit.replace(',', '.'));
+    setSetting('dailyLimit', isNaN(val) || val <= 0 ? '0' : String(val));
+  };
 
   const handleClear = async () => {
     await clearAllData();
@@ -42,6 +50,25 @@ export default function Settings() {
             placeholder="Ваше имя"
             style={{ width: '100%', backgroundColor: SB.card, border: `1.5px solid ${SB.stroke}`, borderRadius: 14, padding: 14, fontFamily: F.sans, fontSize: 16, color: SB.text }}
           />
+        </div>
+
+        {/* Daily limit */}
+        <div style={{ marginBottom: 28 }}>
+          <span style={{ fontFamily: F.mono, fontSize: 11, color: SB.dim, letterSpacing: 1.5, display: 'block', marginBottom: 4 }}>ДНЕВНОЙ ЛИМИТ</span>
+          <span style={{ fontFamily: F.sans, fontSize: 12, color: SB.dim, display: 'block', marginBottom: 12 }}>
+            Если установлен — в календаре покажет красный при превышении
+          </span>
+          <div style={{ position: 'relative' }}>
+            <input
+              value={dailyLimit}
+              onChange={e => setDailyLimit(e.target.value)}
+              onBlur={saveDailyLimit}
+              placeholder="0 — не задан"
+              inputMode="decimal"
+              style={{ width: '100%', backgroundColor: SB.card, border: `1.5px solid ${SB.stroke}`, borderRadius: 14, padding: 14, paddingRight: 40, fontFamily: F.sans, fontSize: 16, color: SB.text, boxSizing: 'border-box' as const }}
+            />
+            <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontFamily: F.sans, fontSize: 16, color: SB.dim }}>₽</span>
+          </div>
         </div>
 
         {/* Danger zone */}

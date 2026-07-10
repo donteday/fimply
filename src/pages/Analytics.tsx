@@ -3,9 +3,10 @@ import { useLocation } from 'react-router-dom';
 import { SB } from '../theme/colors';
 import { F } from '../theme/fonts';
 import { fmtPlain, fmtMonthName, fmtMonthYear } from '../utils/format';
-import { getBudgets, getTransactionsByMonth } from '../services/storage';
+import { getBudgets, getTransactionsByMonth, getSetting } from '../services/storage';
 import { getCategoryMeta } from '../utils/categories';
 import { Budget, Transaction } from '../types';
+import { CalendarBlock } from '../components/CalendarBlock';
 
 const now = new Date();
 const CM = now.getMonth();
@@ -77,15 +78,25 @@ export default function Analytics() {
   const [prevTxs, setPrevTxs] = useState<Transaction[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [prevBudgets, setPrevBudgets] = useState<Budget[]>([]);
+  const [calMonth, setCalMonth] = useState(CM);
+  const [calYear, setCalYear] = useState(CY);
+  const [calTxs, setCalTxs] = useState<Transaction[]>([]);
+  const [dailyLimit, setDailyLimit] = useState(0);
 
   useEffect(() => {
     Promise.all([
       getBudgets(CM, CY), getTransactionsByMonth(CM, CY),
       getTransactionsByMonth(PM, PY), getBudgets(PM, PY),
-    ]).then(([b, cur, prev, prevB]) => {
+      getSetting('dailyLimit', '0'),
+    ]).then(([b, cur, prev, prevB, lim]) => {
       setBudgets(b); setCurTxs(cur); setPrevTxs(prev); setPrevBudgets(prevB);
+      setDailyLimit(parseFloat(lim as string) || 0);
     });
   }, [location.key]);
+
+  useEffect(() => {
+    getTransactionsByMonth(calMonth, calYear).then(setCalTxs);
+  }, [calMonth, calYear, location.key]);
 
   const expTxs = curTxs.filter(t => t.amount < 0);
   const totalSpent = expTxs.reduce((s,t) => s + Math.abs(t.amount), 0);
@@ -139,6 +150,18 @@ export default function Analytics() {
               <span style={{ fontFamily: F.serif, fontWeight: 500, fontSize: 16, color: accent ? SB.lime : SB.text, letterSpacing: -0.5, display: 'block' }}>{value}</span>
             </div>
           ))}
+        </div>
+
+        {/* Calendar */}
+        <div style={{ padding: '16px 20px 0' }}>
+          <span style={{ fontFamily: F.mono, fontSize: 11, color: SB.dim, letterSpacing: 1, display: 'block', marginBottom: 10 }}>КАЛЕНДАРЬ</span>
+          <CalendarBlock
+            month={calMonth}
+            year={calYear}
+            onMonthChange={(m, y) => { setCalMonth(m); setCalYear(y); }}
+            transactions={calTxs}
+            dailyLimit={dailyLimit}
+          />
         </div>
 
         {/* Period toggle */}
