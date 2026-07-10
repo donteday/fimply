@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { SB } from '../theme/colors';
 import { F } from '../theme/fonts';
 import { BalanceCard } from '../components/BalanceCard';
-import { RunwayBlock } from '../components/RunwayBlock';
+import { HomeCarousel } from '../components/HomeCarousel';
 import { TopCatBlock } from '../components/TopCatBlock';
 import { StreakBlock } from '../components/StreakBlock';
 import { AICallout } from '../components/AICallout';
@@ -48,14 +48,16 @@ export default function Home() {
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [insightLoading, setInsightLoading] = useState(false);
   const [goal, setGoal] = useState<Goal | null>(null);
+  const [dailyLimit, setDailyLimit] = useState(0);
 
   useEffect(() => {
     getSetting('userName', '').then(setUserName);
+    getSetting('dailyLimit', '0').then(v => setDailyLimit(parseFloat(v) || 0));
     getBudgets(CURRENT_MONTH, CURRENT_YEAR).then(setBudgets);
     getActiveGoal().then(setGoal);
     getTransactionsByMonth(CURRENT_MONTH, CURRENT_YEAR).then(txs => {
       setTransactions(txs);
-      if (txs.length > 0) {
+      if (txs.length >= 5) {
         setInsightLoading(true);
         getHomeInsight(txs)
           .then(text => { if (text) setAiInsight(text); })
@@ -72,12 +74,20 @@ export default function Home() {
   const streak = calcStreak(transactions);
   const fallbackInsight = transactions.length === 0
     ? 'Добавь первую трату голосом — просто нажми +'
-    : expenses > 0
-      ? `За этот месяц потрачено ${expenses.toLocaleString('ru')} ₽ — ${transactions.filter(t => t.amount < 0).length} операций`
-      : 'Трат пока нет — отличное начало месяца';
+    : transactions.length < 5
+      ? 'Добавь ещё пару трат — скоро дам первый совет'
+      : expenses > 0
+        ? `За этот месяц потрачено ${expenses.toLocaleString('ru')} ₽ — ${transactions.filter(t => t.amount < 0).length} операций`
+        : 'Трат пока нет — отличное начало месяца';
   const insightText = aiInsight ?? fallbackInsight;
 
   const monthLabel = fmtMonthYear(CURRENT_MONTH, CURRENT_YEAR).split(' ')[0];
+
+  const daysElapsed = now.getDate();
+  const daysInMonth = new Date(CURRENT_YEAR, CURRENT_MONTH + 1, 0).getDate();
+  const projected = daysElapsed >= 3 && expenses > 0
+    ? Math.round((expenses / daysElapsed) * daysInMonth)
+    : 0;
 
   return (
     <div style={{ height: '100%', overflowY: 'auto', backgroundColor: SB.bg }}>
@@ -115,7 +125,14 @@ export default function Home() {
         {/* Grid */}
         <div style={{ paddingLeft: 20, paddingRight: 20, paddingTop: 24, display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           <div style={{ width: '100%' }}>
-            <RunwayBlock spent={expenses} budget={totalBudget} monthLabel={fmtMonthYear(CURRENT_MONTH + 1, CURRENT_YEAR).split(' ')[0]} />
+            <HomeCarousel
+              transactions={transactions}
+              dailyLimit={dailyLimit}
+              spent={expenses}
+              projected={projected}
+              budget={totalBudget}
+              monthLabel={monthLabel}
+            />
           </div>
           {topBudget && (
             <div style={{ flex: 1, minWidth: 0 }}>
