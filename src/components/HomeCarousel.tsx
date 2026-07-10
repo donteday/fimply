@@ -110,20 +110,6 @@ function WeekSlide({ transactions, dailyLimit }: WeekSlideProps) {
         })}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'row', gap: 12, marginTop: 12, justifyContent: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <div style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: SB.lime }} />
-          <span style={{ fontFamily: F.mono, fontSize: 9, color: SB.dim, letterSpacing: 0.5 }}>
-            {dailyLimit > 0 ? 'В ЛИМИТЕ' : 'ПЛЮС'}
-          </span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <div style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: SB.danger }} />
-          <span style={{ fontFamily: F.mono, fontSize: 9, color: SB.dim, letterSpacing: 0.5 }}>
-            {dailyLimit > 0 ? 'ПРЕВЫШЕН' : 'МИНУС'}
-          </span>
-        </div>
-      </div>
     </div>
   );
 }
