@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { SB } from '../theme/colors';
 import { F } from '../theme/fonts';
 import { getSetting, setSetting, clearAllData } from '../services/storage';
+import { getPermissionState, requestAndEnable, scheduleReminder, cancelReminder } from '../services/notifications';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -10,11 +11,37 @@ export default function Settings() {
   const [dailyLimit, setDailyLimit] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
   const [cleared, setCleared] = useState(false);
+  const [notifPerm, setNotifPerm] = useState<ReturnType<typeof getPermissionState>>('default');
+  const [notifEnabled, setNotifEnabled] = useState(false);
 
   useEffect(() => {
     getSetting('userName', '').then(setUserName);
     getSetting('dailyLimit', '').then(setDailyLimit);
+    setNotifPerm(getPermissionState());
+    getSetting('notifEnabled', 'false').then(v => setNotifEnabled(v === 'true'));
   }, []);
+
+  const handleNotifToggle = async () => {
+    if (notifPerm === 'unsupported') return;
+    if (notifPerm !== 'granted') {
+      const ok = await requestAndEnable();
+      if (ok) {
+        setNotifPerm('granted');
+        setNotifEnabled(true);
+        setSetting('notifEnabled', 'true');
+      }
+      return;
+    }
+    if (notifEnabled) {
+      cancelReminder();
+      setNotifEnabled(false);
+      setSetting('notifEnabled', 'false');
+    } else {
+      scheduleReminder();
+      setNotifEnabled(true);
+      setSetting('notifEnabled', 'true');
+    }
+  };
 
   const saveUserName = () => setSetting('userName', userName);
   const saveDailyLimit = () => {
@@ -71,43 +98,33 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Danger zone */}
+        {/* Notifications */}
         <div style={{ marginBottom: 28 }}>
-          <span style={{ fontFamily: F.mono, fontSize: 11, color: SB.dim, letterSpacing: 1.5, display: 'block', marginBottom: 12 }}>ОПАСНАЯ ЗОНА</span>
-
-          {!confirmClear ? (
-            <button
-              onClick={() => setConfirmClear(true)}
-              style={{ width: '100%', backgroundColor: SB.card, border: `1.5px solid ${SB.danger}`, borderRadius: 14, padding: 16, cursor: 'pointer' }}
-            >
-              <span style={{ fontFamily: F.sansSemiBold, fontWeight: 600, fontSize: 15, color: SB.danger }}>Очистить все данные</span>
-            </button>
+          <span style={{ fontFamily: F.mono, fontSize: 11, color: SB.dim, letterSpacing: 1.5, display: 'block', marginBottom: 4 }}>НАПОМИНАНИЯ</span>
+          <span style={{ fontFamily: F.sans, fontSize: 12, color: SB.dim, display: 'block', marginBottom: 12 }}>
+            Каждый день в 22:00 напомним внести траты
+          </span>
+          {notifPerm === 'unsupported' ? (
+            <span style={{ fontFamily: F.sans, fontSize: 13, color: SB.dim }}>Уведомления не поддерживаются браузером</span>
+          ) : notifPerm === 'denied' ? (
+            <span style={{ fontFamily: F.sans, fontSize: 13, color: SB.danger }}>Уведомления заблокированы — разреши в настройках браузера</span>
           ) : (
-            <div style={{ border: `1.5px solid ${SB.danger}`, borderRadius: 14, padding: 16, backgroundColor: 'rgba(255,119,102,0.08)' }}>
-              <span style={{ fontFamily: F.sans, fontSize: 14, color: SB.text, display: 'block', marginBottom: 14 }}>
-                Удалить все транзакции и настройки без возможности восстановления?
+            <button
+              onClick={handleNotifToggle}
+              style={{
+                width: '100%', padding: '14px 18px', borderRadius: 14,
+                backgroundColor: notifEnabled ? 'rgba(216,255,90,0.1)' : SB.card,
+                border: `1.5px solid ${notifEnabled ? SB.lime : SB.stroke}`,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}
+            >
+              <span style={{ fontFamily: F.sansSemiBold, fontWeight: 600, fontSize: 15, color: notifEnabled ? SB.lime : SB.text }}>
+                {notifPerm !== 'granted' ? 'Включить напоминание' : notifEnabled ? 'Напоминание в 22:00' : 'Напоминание выключено'}
               </span>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button
-                  onClick={handleClear}
-                  style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: SB.danger, border: 'none', cursor: 'pointer' }}
-                >
-                  <span style={{ fontFamily: F.sansSemiBold, fontWeight: 600, fontSize: 14, color: '#fff' }}>Удалить</span>
-                </button>
-                <button
-                  onClick={() => setConfirmClear(false)}
-                  style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: SB.card, border: `1.5px solid ${SB.stroke}`, cursor: 'pointer' }}
-                >
-                  <span style={{ fontFamily: F.sansSemiBold, fontWeight: 600, fontSize: 14, color: SB.muted }}>Отмена</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {cleared && (
-            <span style={{ fontFamily: F.mono, fontSize: 12, color: SB.lime, display: 'block', marginTop: 10, letterSpacing: 0.5 }}>
-              ✓ Данные удалены
-            </span>
+              <span style={{ fontFamily: F.mono, fontSize: 12, color: notifEnabled ? SB.lime : SB.dim }}>
+                {notifPerm !== 'granted' ? 'разреши →' : notifEnabled ? 'ВКЛ' : 'ВЫКЛ'}
+              </span>
+            </button>
           )}
         </div>
 

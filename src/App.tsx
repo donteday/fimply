@@ -12,6 +12,7 @@ import { F } from './theme/fonts';
 import { PcmRecorder } from './services/recorder';
 import { transcribeAudio } from './services/yandexStt';
 import { parseVoiceInput } from './services/deepseek';
+import { getPermissionState, scheduleReminder } from './services/notifications';
 
 const TABS = [
   { name: 'Дом', path: '/' },
@@ -389,6 +390,14 @@ function TabBar() {
 }
 
 export default function App() {
+  useEffect(() => {
+    import('./services/storage').then(({ getSetting }) => {
+      getSetting('notifEnabled', 'false').then(v => {
+        if (v === 'true' && getPermissionState() === 'granted') scheduleReminder();
+      });
+    });
+  }, []);
+
   return (
     <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
