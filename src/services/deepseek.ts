@@ -40,6 +40,19 @@ async function callDeepSeek(systemPrompt: string, userMessage: string): Promise<
 
 export interface ChatMessage { role: 'user' | 'assistant'; content: string; }
 
+const CAT_LABELS: Record<string, string> = {
+  food: 'Продукты',
+  cafe: 'Кафе и рестораны',
+  transport: 'Транспорт',
+  health: 'Здоровье',
+  entertainment: 'Развлечения',
+  shopping: 'Покупки',
+  utilities: 'ЖКХ',
+  salary: 'Зарплата',
+  transfer: 'Переводы',
+  other: 'Другое',
+};
+
 function buildFinanceContext(transactions: Transaction[]): string {
   if (!transactions.length) return '';
   const now = new Date();
@@ -59,14 +72,21 @@ function buildFinanceContext(transactions: Transaction[]): string {
   const topCats = Object.entries(byCategory)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
-    .map(([cat, sum]) => `${cat}: ${sum.toFixed(0)} ₽`)
+    .map(([cat, sum]) => `${CAT_LABELS[cat] ?? cat}: ${sum.toFixed(0)} ₽`)
     .join(', ');
 
-  const recent = transactions.slice(0, 5)
+  const recent = thisMonth.slice(0, 8)
     .map(t => `${t.merchant || t.description} ${t.amount > 0 ? '+' : ''}${t.amount} ₽`)
     .join('; ');
 
-  return `\n\nДАННЫЕ ПОЛЬЗОВАТЕЛЯ (текущий месяц):\n- Расходы: ${totalExpense.toFixed(0)} ₽\n- Доходы: ${totalIncome.toFixed(0)} ₽\n- По категориям: ${topCats || 'нет данных'}\n- Последние операции: ${recent || 'нет данных'}`;
+  const otherItems = thisMonth
+    .filter(t => t.category === 'other')
+    .map(t => `${t.merchant || t.description} ${t.amount > 0 ? '+' : ''}${t.amount} ₽`)
+    .join('; ');
+
+  let ctx = `\n\nДАННЫЕ ПОЛЬЗОВАТЕЛЯ (текущий месяц):\n- Расходы: ${totalExpense.toFixed(0)} ₽\n- Доходы: ${totalIncome.toFixed(0)} ₽\n- По категориям: ${topCats || 'нет данных'}\n- Последние операции: ${recent || 'нет данных'}`;
+  if (otherItems) ctx += `\n- Что в категории "Другое": ${otherItems}`;
+  return ctx;
 }
 
 const CHAT_SYSTEM = `Ты Fimply — финансовый наставник. Общаешься чилово, как умный друг, без занудства и лекций.

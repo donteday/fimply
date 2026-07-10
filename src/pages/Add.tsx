@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { SB } from '../theme/colors';
 import { F } from '../theme/fonts';
 import { VoiceButton } from '../components/VoiceButton';
@@ -10,8 +10,10 @@ import { getCategoryMeta, ALL_CATEGORIES } from '../utils/categories';
 
 export default function Add() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<'voice' | 'confirm' | 'manual'>('voice');
-  const [parsed, setParsed] = useState<ParsedTransaction | null>(null);
+  const location = useLocation();
+  const locationState = location.state as { step?: 'confirm'; parsed?: ParsedTransaction } | null;
+  const [step, setStep] = useState<'voice' | 'confirm' | 'manual'>(locationState?.step ?? 'voice');
+  const [parsed, setParsed] = useState<ParsedTransaction | null>(locationState?.parsed ?? null);
   const [saving, setSaving] = useState(false);
 
   // manual form state
