@@ -402,6 +402,19 @@ export default function App() {
           <Route path="/goals" element={<Goals />} />
         </Routes>
       </div>
+
+      {/* Gradient fade above tab bar */}
+      <div style={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 100,
+        background: `linear-gradient(to bottom, transparent, ${SB.bg})`,
+        pointerEvents: 'none',
+        zIndex: 99,
+      }} />
+
       <TabBar />
     </div>
   );
