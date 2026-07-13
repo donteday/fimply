@@ -1,113 +1,98 @@
-const REMINDER_TEXTS = [
-  'Эй, деньги себя не запишут — ну ты понял 💸',
-  'Карточка молчит, но мы оба знаем что ты тратил сегодня 🤫',
-  'Брось сериал на минуту — запиши траты, потом досмотришь 📱',
-  'Твой кошелёк шепчет: занеси меня уже в приложение 🎙',
-  'Конец дня. Кофе, такси, ещё что-то — всё это ждёт записи 📊',
-  'Пока не уснул — 2 минуты на траты за сегодня, потом всё 🌙',
-  'Деньги не умеют считать себя сами. Им нужна твоя помощь 🧮',
-  '22:00 — золотое время для финансового чекина 💡',
-  'Сегодняшние траты скоро растворятся в памяти. Fimply помнит лучше 🧠',
-  'Напоминалка от будущего тебя: запиши траты, ты скажешь спасибо 🙌',
-];
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string;
 
-let scheduledTimer: ReturnType<typeof setTimeout> | null = null;
-let morningTimer: ReturnType<typeof setTimeout> | null = null;
-const MORNING_CACHE = 'fimply_morning_brief';
+function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const buf = new ArrayBuffer(rawData.length);
+  const view = new Uint8Array(buf);
+  for (let i = 0; i < rawData.length; i++) view[i] = rawData.charCodeAt(i);
+  return buf;
+}
 
-async function show(body: string) {
-  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+async function getSubscription(): Promise<PushSubscription | null> {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+  const reg = await navigator.serviceWorker.ready;
+  return reg.pushManager.getSubscription();
+}
+
+async function subscribe(): Promise<PushSubscription | null> {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+  const reg = await navigator.serviceWorker.ready;
   try {
-    if ('serviceWorker' in navigator) {
-      const reg = await navigator.serviceWorker.ready;
-      await reg.showNotification('Fimply', {
-        body,
-        icon: '/icon.png',
-        badge: '/icon.png',
-        tag: 'fimply-daily-reminder',
-      });
-    } else {
-      new Notification('Fimply', { body, icon: '/icon.png' });
-    }
-  } catch {}
-}
-
-function randomText() {
-  return REMINDER_TEXTS[Math.floor(Math.random() * REMINDER_TEXTS.length)];
-}
-
-function msUntilTen() {
-  const now = new Date();
-  const target = new Date();
-  target.setHours(22, 0, 0, 0);
-  if (now >= target) target.setDate(target.getDate() + 1);
-  return target.getTime() - now.getTime();
-}
-
-export function scheduleReminder() {
-  if (scheduledTimer) clearTimeout(scheduledTimer);
-  scheduledTimer = setTimeout(async () => {
-    await show(randomText());
-    scheduleReminder(); // reschedule next day
-  }, msUntilTen());
-}
-
-export function cancelReminder() {
-  if (scheduledTimer) {
-    clearTimeout(scheduledTimer);
-    scheduledTimer = null;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub),
+    });
+    return sub;
+  } catch {
+    return null;
   }
 }
 
-export function scheduleMorningBriefing(text: string) {
-  if (Notification.permission !== 'granted') return;
-
-  const today = new Date().toDateString();
-  try {
-    const cached = localStorage.getItem(MORNING_CACHE);
-    if (cached) {
-      const { date, shown } = JSON.parse(cached);
-      if (date === today && shown) return;
-    }
-  } catch {}
-
-  const now = new Date();
-  const target = new Date();
-  target.setHours(10, 0, 0, 0);
-
-  if (now >= target) {
-    // Already past 10 AM today — skip, mark done
-    try { localStorage.setItem(MORNING_CACHE, JSON.stringify({ date: today, shown: true })); } catch {}
-    return;
-  }
-
-  try { localStorage.setItem(MORNING_CACHE, JSON.stringify({ date: today, text, shown: false })); } catch {}
-
-  if (morningTimer) clearTimeout(morningTimer);
-  morningTimer = setTimeout(async () => {
-    await show(text);
-    try { localStorage.setItem(MORNING_CACHE, JSON.stringify({ date: today, shown: true })); } catch {}
-  }, target.getTime() - now.getTime());
-}
-
-export function cancelMorningBriefing() {
-  if (morningTimer) {
-    clearTimeout(morningTimer);
-    morningTimer = null;
-  }
+async function unsubscribe(): Promise<void> {
+  const sub = await getSubscription();
+  if (!sub) return;
+  const endpoint = sub.endpoint;
+  await sub.unsubscribe();
+  await fetch('/api/push/unsubscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ endpoint }),
+  }).catch(() => {});
 }
 
 export async function requestAndEnable(): Promise<boolean> {
   if (!('Notification' in window)) return false;
   const result = await Notification.requestPermission();
-  if (result === 'granted') {
-    scheduleReminder();
-    return true;
-  }
-  return false;
+  if (result !== 'granted') return false;
+  const sub = await subscribe();
+  return sub !== null;
+}
+
+export async function ensureSubscribed(): Promise<void> {
+  if (Notification.permission !== 'granted') return;
+  const existing = await getSubscription();
+  if (!existing) await subscribe();
+}
+
+export async function enableReminder(): Promise<void> {
+  await ensureSubscribed();
+  await fetch('/api/push/reminder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: true }) });
+}
+
+export async function disableReminder(): Promise<void> {
+  await fetch('/api/push/reminder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: false }) });
+}
+
+export async function enableMorningBrief(): Promise<void> {
+  await ensureSubscribed();
+}
+
+export async function disableMorningBrief(): Promise<void> {
+  // nothing to cancel server-side — server checks morningBriefEnabled flag
+}
+
+export async function sendMorningText(text: string): Promise<void> {
+  await fetch('/api/push/morning-text', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  }).catch(() => {});
 }
 
 export function getPermissionState(): NotificationPermission | 'unsupported' {
   if (!('Notification' in window)) return 'unsupported';
   return Notification.permission;
 }
+
+// Legacy stubs kept so Settings.tsx import doesn't break
+export function scheduleReminder() {}
+export function cancelReminder() {}
+export function scheduleMorningBriefing(_text: string) {}
+export function cancelMorningBriefing() {}

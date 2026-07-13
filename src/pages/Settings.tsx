@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { SB } from '../theme/colors';
 import { F } from '../theme/fonts';
 import { getSetting, setSetting, clearAllData } from '../services/storage';
-import { getPermissionState, requestAndEnable, scheduleReminder, cancelReminder, cancelMorningBriefing } from '../services/notifications';
+import { getPermissionState, requestAndEnable, enableReminder, disableReminder, enableMorningBrief, disableMorningBrief } from '../services/notifications';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -31,14 +31,16 @@ export default function Settings() {
         setNotifPerm('granted');
         setMorningEnabled(true);
         setSetting('morningBriefEnabled', 'true');
+        enableMorningBrief();
       }
       return;
     }
     if (morningEnabled) {
-      cancelMorningBriefing();
+      disableMorningBrief();
       setMorningEnabled(false);
       setSetting('morningBriefEnabled', 'false');
     } else {
+      enableMorningBrief();
       setMorningEnabled(true);
       setSetting('morningBriefEnabled', 'true');
     }
@@ -52,15 +54,16 @@ export default function Settings() {
         setNotifPerm('granted');
         setNotifEnabled(true);
         setSetting('notifEnabled', 'true');
+        enableReminder();
       }
       return;
     }
     if (notifEnabled) {
-      cancelReminder();
+      disableReminder();
       setNotifEnabled(false);
       setSetting('notifEnabled', 'false');
     } else {
-      scheduleReminder();
+      enableReminder();
       setNotifEnabled(true);
       setSetting('notifEnabled', 'true');
     }

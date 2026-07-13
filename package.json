@@ -13,13 +13,17 @@
     "dotenv": "^17.4.2",
     "express": "^4.21.2",
     "idb": "^8.0.0",
+    "node-cron": "^4.6.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-router-dom": "^7.6.3"
+    "react-router-dom": "^7.6.3",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@types/node-cron": "^3.0.11",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
+    "@types/web-push": "^3.6.4",
     "@vitejs/plugin-basic-ssl": "^2.3.0",
     "@vitejs/plugin-react": "^4.5.2",
     "typescript": "~5.9.2",

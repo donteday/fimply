@@ -11,6 +11,9 @@ export default defineConfig(({ mode }) => {
       basicSsl(),
       react(),
       VitePWA({
+        strategies: 'injectManifest',
+        srcDir: 'src',
+        filename: 'sw.ts',
         registerType: 'autoUpdate',
         includeAssets: ['favicon.png', 'icon.png'],
         manifest: {
